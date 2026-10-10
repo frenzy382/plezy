@@ -10,6 +10,7 @@ import '../../models/transcode_quality_preset.dart';
 import '../../models/player_setting_scope.dart';
 import '../../utils/audio_channel_limit_labels.dart';
 import '../../utils/quality_preset_labels.dart';
+import '../../models/truehd_override_mode.dart';
 import '../../services/settings_service.dart';
 import '../../services/video_decode_capabilities.dart';
 import '../../utils/codec_utils.dart';
@@ -103,6 +104,7 @@ class PlaybackSettingsScreen extends StatelessWidget {
               title: t.settings.audio,
               children: [
                 if (PlatformDetector.supportsAudioPassthrough()) _audioPassthroughTile(),
+                if (Platform.isAndroid && PlatformDetector.supportsAudioPassthrough()) _trueHdOverrideTile(),
                 _audioChannelLimitTile(exoActive: exoActive),
                 // Only a stereo fold mixes the center away; any fold can clip.
                 if (channelLimit == AudioChannelLimit.stereo) _downmixCenterBoostTile(),
@@ -518,6 +520,20 @@ class PlaybackSettingsScreen extends StatelessWidget {
         enabled: !normalizationOn,
       );
     },
+  );
+
+  // Fork: force TrueHD bitstreaming when the route probes wrongly say the
+  // HDMI output cannot take it (stock Plezy then decodes TrueHD to PCM).
+  Widget _trueHdOverrideTile() => SettingSelectionTile<TrueHdOverrideMode>(
+    pref: SettingsService.trueHdOverride,
+    icon: Symbols.graphic_eq_rounded,
+    title: 'TrueHD Output',
+    subtitleBuilder: (mode) => '${mode.label} · Needs Audio Passthrough on',
+    options: [
+      for (final mode in TrueHdOverrideMode.values)
+        DialogOption(value: mode, title: mode.label, subtitle: mode.description),
+    ],
+    onAfterWrite: TrueHdOverrideMode.apply,
   );
 
   Widget _audioChannelLimitTile({required bool exoActive}) => SettingSelectionTile<AudioChannelLimit>(

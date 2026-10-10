@@ -246,6 +246,11 @@ android {
 
   defaultConfig {
     applicationId = "com.edde746.plezy"
+    // Fork builds (PLEZY_FORK=1) install alongside stock Plezy: own app id,
+    // label and provider authorities (the manifest derives those from applicationId).
+    val forkBuild = System.getenv("PLEZY_FORK") != null
+    if (forkBuild) applicationIdSuffix = ".fork"
+    manifestPlaceholders["appLabel"] = if (forkBuild) "Plezy Fork" else "Plezy"
     minSdk = 25 // Fire OS 6.x (API 25); :libmpv shares the same floor
     targetSdk = flutter.targetSdkVersion
     versionCode = flutter.versionCode

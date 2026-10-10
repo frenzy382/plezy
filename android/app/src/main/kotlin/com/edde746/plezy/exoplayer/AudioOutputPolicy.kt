@@ -209,13 +209,25 @@ internal fun supportedMpvSpdifCodecs(context: Context): String {
     { shape -> shapeProbed.getOrPut(shape) { routeTakesIecShape(context, shape) } },
     { encoding -> rawProbed.getOrPut(encoding) { supportsMpvRawTrack(context, encoding) } },
     { encoding -> !isDtsEncoding(encoding) || sinkDecodesDts }
-  )
+  ).let { withTrueHdOverride(it) }
   if (codecs.isEmpty()) {
     Log.i(TAG, "Route takes no passthrough track mpv can fill; mpv will decode instead of bitstreaming")
   } else {
     Log.i(TAG, "mpv will bitstream: $codecs")
   }
   return codecs
+}
+
+/**
+ * Fork override: when the user forces TrueHD bitstreaming, name `truehd` in mpv's audio-spdif list
+ * even if the route probes left it out. mpv's AO still tries the 192kHz/7.1 carrier first, then the
+ * raw track, and demotes TrueHD to decoding if the raw track stops draining.
+ */
+internal fun withTrueHdOverride(codecs: String, forced: Boolean = TrueHdOverride.forced): String {
+  if (!forced) return codecs
+  val names = codecs.split(',').filter { it.isNotBlank() }
+  if ("truehd" in names) return codecs
+  return (names + "truehd").joinToString(",")
 }
 
 private fun routeTakesIecShape(context: Context, shape: MpvIecShape): Boolean = when (shape) {

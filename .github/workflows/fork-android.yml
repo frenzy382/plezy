@@ -1,0 +1,73 @@
+# Fork-only: builds a sideloadable "Plezy Fork" APK (debug-signed, own app id
+# com.edde746.plezy.fork) so it installs next to stock Plezy.
+# Run it from the Actions tab (Run workflow) or by pushing to the fork branch;
+# the APKs appear as an artifact on the run page.
+name: Fork Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [fork/truehd-override]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fork-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # Never runs on the upstream repository.
+    if: ${{ github.repository != 'edde746/plezy' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PLEZY_FORK: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.47.1"
+          cache: true
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: fork-${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile --no-example
+
+      - name: Configure Android local properties
+        run: printf 'flutter.sdk=%s\nsdk.dir=%s\n' "$FLUTTER_ROOT" "$ANDROID_HOME" > android/local.properties
+
+      - name: Kotlin unit tests (audio routing, providers)
+        working-directory: android
+        run: >
+          ./gradlew :app:testDebugUnitTest -x :app:compileFlutterBuildDebug
+          --tests 'com.edde746.plezy.exoplayer.*'
+          --tests 'com.edde746.plezy.watchnext.*'
+          --tests 'com.edde746.plezy.ExternalPlayerChannelTest'
+
+      - name: Build APKs
+        run: flutter build apk --release --split-per-abi --dart-define=GIT_COMMIT=${{ github.sha }}
+
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: plezy-fork-apk
+          path: build/app/outputs/flutter-apk/*.apk
+          retention-days: 30

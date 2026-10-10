@@ -86,6 +86,25 @@ class IecCarrierSinkTest {
   }
 
   @Test
+  fun forcedRawTrueHdWithoutACarrierRouteDefersToTheNormalSink() {
+    val normal = FakeSink().apply { formatSupport = AudioSink.SINK_FORMAT_SUPPORTED_DIRECTLY }
+    val carrierSink = IecCarrierSink(normal, FakeSink(), { false }, { false }, allowRawTrueHd = { true })
+
+    assertTrue(carrierSink.supportsFormat(trueHdFormat()))
+    assertEquals(AudioSink.SINK_FORMAT_SUPPORTED_DIRECTLY, carrierSink.getFormatSupport(trueHdFormat()))
+    carrierSink.configure(audioSinkConfig(trueHdFormat()))
+    assertEquals(MimeTypes.AUDIO_TRUEHD, checkNotNull(normal.configuredConfig).format.sampleMimeType)
+  }
+
+  @Test
+  fun forcedRawTrueHdStillHonoursTheNormalSinksRefusal() {
+    val normal = FakeSink().apply { formatSupport = AudioSink.SINK_FORMAT_UNSUPPORTED }
+    val carrierSink = IecCarrierSink(normal, FakeSink(), { false }, { false }, allowRawTrueHd = { true })
+
+    assertEquals(AudioSink.SINK_FORMAT_UNSUPPORTED, carrierSink.getFormatSupport(trueHdFormat()))
+  }
+
+  @Test
   fun trueHdWithACarrierRouteIsSupportedDirectly() {
     val carrierSink = sink()
     assertTrue(carrierSink.supportsFormat(trueHdFormat()))

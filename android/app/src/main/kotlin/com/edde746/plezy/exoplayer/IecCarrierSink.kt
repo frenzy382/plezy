@@ -52,6 +52,12 @@ internal class IecCarrierSink(
   private val carrierRouteAvailable: (Format) -> Boolean,
   /** Whether policy currently forbids bitstreaming at all (downmix, normalization, user setting). */
   private val directOutputBlocked: (Format) -> Boolean,
+  /**
+   * Fork override ([TrueHdOverride.RAW]): when the carrier is not used, let the default sink take
+   * raw TrueHD instead of reporting it unsupported. The default sink still refuses it whenever
+   * [directOutputBlocked] says so, and falls back to decoding on AudioTrack failure.
+   */
+  private val allowRawTrueHd: () -> Boolean = { false },
   private val log: ((String, String, String) -> Unit)? = null
 ) : AudioSink {
 
@@ -174,6 +180,7 @@ internal class IecCarrierSink(
 
   override fun supportsFormat(format: Format): Boolean = when {
     shouldUseCarrier(format) -> true
+    isTrueHd(format) && allowRawTrueHd() -> defaultSink.supportsFormat(format)
     isTrueHd(format) -> false
     isDtsHd(format) && carrierRouteAvailable(format) -> false
     else -> defaultSink.supportsFormat(format)
@@ -181,6 +188,7 @@ internal class IecCarrierSink(
 
   override fun getFormatSupport(format: Format): Int = when {
     shouldUseCarrier(format) -> AudioSink.SINK_FORMAT_SUPPORTED_DIRECTLY
+    isTrueHd(format) && allowRawTrueHd() -> defaultSink.getFormatSupport(format)
     isTrueHd(format) -> AudioSink.SINK_FORMAT_UNSUPPORTED
     isDtsHd(format) && carrierRouteAvailable(format) -> AudioSink.SINK_FORMAT_UNSUPPORTED
     else -> defaultSink.getFormatSupport(format)

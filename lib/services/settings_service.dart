@@ -32,6 +32,7 @@ export 'base_shared_preferences_service.dart'
         NullableEnumPref,
         JsonPref;
 import '../models/audio_channel_limit.dart';
+import '../models/truehd_override_mode.dart';
 import '../models/audio_quality_preset.dart';
 import '../models/transcode_quality_preset.dart';
 import '../navigation/navigation_tabs.dart';
@@ -808,6 +809,13 @@ class SettingsService extends BaseSharedPreferencesService {
   static const audioPassthrough = _AudioPassthroughPref();
   static const audioNormalization = BoolPref('audio_normalization');
 
+  /// Fork: user override for TrueHD routing on Android (see [TrueHdOverrideMode]).
+  static const trueHdOverride = EnumPref<TrueHdOverrideMode>(
+    'fork_truehd_override',
+    values: TrueHdOverrideMode.values,
+    defaultValue: TrueHdOverrideMode.auto,
+  );
+
   /// Replaced the `audio_downmix` stereo toggle: on → [AudioChannelLimit.stereo].
   static const audioChannelLimit = LegacyBoolEnumPref<AudioChannelLimit>(
     'audio_channel_limit',
@@ -1430,6 +1438,7 @@ class SettingsService extends BaseSharedPreferencesService {
     visualEffects,
     ambientLighting,
     audioPassthrough,
+    trueHdOverride,
     audioNormalization,
     audioChannelLimit,
     audioDownmixNormalize,

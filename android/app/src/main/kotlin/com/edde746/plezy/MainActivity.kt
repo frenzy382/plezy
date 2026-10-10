@@ -915,6 +915,19 @@ class MainActivity : FlutterActivity() {
       handleDeviceAdjustmentCall(call.method, call.arguments, result)
     }
 
+    // Fork: user override for TrueHD routing (see TrueHdOverride).
+    MethodChannel(flutterEngine.dartExecutor.binaryMessenger, com.edde746.plezy.exoplayer.TrueHdOverride.CHANNEL)
+      .setMethodCallHandler { call, result ->
+        when (call.method) {
+          "setTrueHdOverride" -> {
+            val mode = call.argument<Int>("mode") ?: com.edde746.plezy.exoplayer.TrueHdOverride.AUTO
+            com.edde746.plezy.exoplayer.TrueHdOverride.setMode(mode)
+            result.success(com.edde746.plezy.exoplayer.TrueHdOverride.describe())
+          }
+          else -> result.notImplemented()
+        }
+      }
+
     MethodChannel(flutterEngine.dartExecutor.binaryMessenger, TEXT_INPUT_CHANNEL).setMethodCallHandler { call, result ->
       when (call.method) {
         "setNativeTextInputFocused" -> {

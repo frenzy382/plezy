@@ -209,12 +209,22 @@ class PlezyRenderersFactory(context: Context) : DefaultRenderersFactory(context)
       carrierSink = buildCarrierSink(context, bufferSizeProvider),
       carrierRouteAvailable = { format -> carrierRouteAvailableFor(context, format) },
       directOutputBlocked = { format -> shouldBlockDirectAudioOutput?.invoke(format) == true },
+      allowRawTrueHd = { TrueHdOverride.mode == TrueHdOverride.RAW },
       log = audioDiagnosticsLogger
     ).also { iecCarrierSink = it }
   }
 
   /** TrueHD needs only the carrier tuple (#1804); DTS-HD also needs the route to advertise it. */
-  private fun carrierRouteAvailableFor(context: Context, format: Format): Boolean = if (format.sampleMimeType == MimeTypes.AUDIO_DTS_HD) supportsDtsHdIecCarrier(context) else supportsIecCarrier(context)
+  private fun carrierRouteAvailableFor(context: Context, format: Format): Boolean {
+    if (format.sampleMimeType == MimeTypes.AUDIO_TRUEHD) {
+      // Fork override: trust the user over the route probes for TrueHD.
+      when (TrueHdOverride.mode) {
+        TrueHdOverride.CARRIER -> return true
+        TrueHdOverride.RAW -> return false
+      }
+    }
+    return if (format.sampleMimeType == MimeTypes.AUDIO_DTS_HD) supportsDtsHdIecCarrier(context) else supportsIecCarrier(context)
+  }
 
   /**
    * The delegate that carries packed TrueHD and DTS-HD (#1804, #1988).

@@ -26,6 +26,7 @@ import '../media/media_server_client.dart';
 import '../media/episode_collection.dart';
 import '../media/live_tv_support.dart';
 import '../models/livetv_capture_buffer.dart';
+import '../models/truehd_override_mode.dart';
 import '../models/livetv_channel.dart';
 import '../services/live_seek_accumulator.dart';
 import '../services/plex_client.dart';
@@ -1977,6 +1978,9 @@ class VideoPlayerScreenState extends State<VideoPlayerScreen>
       // native sample-buffer renderer handles AC3/EAC3, including JOC metadata;
       // never macOS — see PlatformDetector.supportsAudioPassthrough).
       if (PlatformDetector.supportsAudioPassthrough()) {
+        // Fork: the TrueHD override must reach native code before passthrough
+        // resolves mpv's audio-spdif list / the ExoPlayer sink configures.
+        await TrueHdOverrideMode.apply(settingsService.read(SettingsService.trueHdOverride));
         await currentPlayer.setAudioPassthrough(settingsService.read(SettingsService.audioPassthrough));
       }
 

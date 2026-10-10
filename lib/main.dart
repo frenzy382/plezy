@@ -26,6 +26,7 @@ import 'profiles/profile_connection_registry.dart';
 import 'profiles/profile_registry.dart';
 import 'profiles/profile_selection_policy.dart';
 import 'models/external_player_models.dart';
+import 'models/truehd_override_mode.dart';
 import 'mixins/mounted_set_state_mixin.dart';
 import 'theme/mono_theme.dart';
 import 'profiles/plex_home_service.dart';
@@ -253,6 +254,8 @@ Future<void> _optionalGatePhase(
 Future<_StartupDependencies> _initializeApplication() async {
   final settings = await _gatePhase(StartupPhase.preferences, SettingsService.getInstance);
   setLoggerLevel(settings.read(SettingsService.enableDebugLogging));
+  // Fork: seed the native TrueHD override before any player exists.
+  unawaited(TrueHdOverrideMode.apply(settings.read(SettingsService.trueHdOverride)));
 
   if (_enableSentry) {
     // Crash reporting is observability: it must never veto the launch it

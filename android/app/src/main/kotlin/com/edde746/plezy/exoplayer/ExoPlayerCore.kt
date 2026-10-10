@@ -2282,8 +2282,20 @@ class ExoPlayerCore(private val activity: Activity) :
   private fun shouldBlockDirectTrueHd(format: Format, reason: String): Boolean {
     val decision = evaluateTrueHdDirectOutput(format)
     logTrueHdDirectOutputDecision(reason, format, decision)
+    if (TrueHdOverride.forced) {
+      if (decision.blockDirectOutput && loggedTrueHdOverrideReasons.add(reason)) {
+        emitLog(
+          "info",
+          "audio",
+          "TrueHD route probes said decode (${decision.decisionSource}); bitstreaming anyway (override=${TrueHdOverride.describe()}, reason=$reason)"
+        )
+      }
+      return false
+    }
     return decision.blockDirectOutput
   }
+
+  private val loggedTrueHdOverrideReasons = HashSet<String>()
 
   private fun shouldBlockDirectAudioOutput(format: Format, reason: String): Boolean {
     val mimeType = format.sampleMimeType ?: return false

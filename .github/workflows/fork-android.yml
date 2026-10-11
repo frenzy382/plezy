@@ -55,15 +55,31 @@ jobs:
         run: printf 'flutter.sdk=%s\nsdk.dir=%s\n' "$FLUTTER_ROOT" "$ANDROID_HOME" > android/local.properties
 
       - name: Kotlin unit tests (audio routing, providers)
+        id: tests
+        continue-on-error: true
         working-directory: android
-        run: >
-          ./gradlew :app:testDebugUnitTest -x :app:compileFlutterBuildDebug
-          --tests 'com.edde746.plezy.exoplayer.*'
-          --tests 'com.edde746.plezy.watchnext.*'
-          --tests 'com.edde746.plezy.ExternalPlayerChannelTest'
+        run: |
+          set -o pipefail
+          ./gradlew :app:testDebugUnitTest -x :app:compileFlutterBuildDebug \
+            --tests 'com.edde746.plezy.exoplayer.*' \
+            --tests 'com.edde746.plezy.watchnext.*' \
+            --tests 'com.edde746.plezy.ExternalPlayerChannelTest' 2>&1 | tee ../test.log
+      - name: Report test errors as annotations
+        if: steps.tests.outcome == 'failure'
+        run: |
+          grep -E "^e: |FAILED|Exception|expected:|error:|What went wrong" -A2 test.log | head -60 \
+            | sed 's/%/%25/g' | while IFS= read -r line; do echo "::error::${line}"; done
 
       - name: Build APKs
-        run: flutter build apk --release --split-per-abi --dart-define=GIT_COMMIT=${{ github.sha }}
+        id: apk
+        run: |
+          set -o pipefail
+          flutter build apk --release --split-per-abi --dart-define=GIT_COMMIT=${{ github.sha }} 2>&1 | tee build.log
+      - name: Report build errors as annotations
+        if: failure() && steps.apk.outcome == 'failure'
+        run: |
+          grep -E "^e: |error:|Error:|What went wrong|FAILURE" -A2 build.log | head -60 \
+            | sed 's/%/%25/g' | while IFS= read -r line; do echo "::error::${line}"; done
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4

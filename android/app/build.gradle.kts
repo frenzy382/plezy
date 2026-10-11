@@ -230,6 +230,11 @@ val downloadLibdovi = tasks.register("downloadLibdovi") {
 
 android {
   namespace = "com.edde746.plezy"
+
+  // Fork: BuildConfig.APPLICATION_ID names the shelf-artwork authority at compile time.
+  buildFeatures {
+    buildConfig = true
+  }
   compileSdk = flutter.compileSdkVersion
   buildToolsVersion = "36.1.0"
   ndkVersion = "29.0.14206865"

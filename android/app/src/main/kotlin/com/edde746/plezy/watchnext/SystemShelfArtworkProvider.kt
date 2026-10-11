@@ -22,17 +22,11 @@ import java.util.concurrent.TimeUnit
 
 class SystemShelfArtworkProvider : ContentProvider() {
   companion object {
-    /** Set from the package name in [onCreate], so a fork with its own app id gets its own authority. */
-    @Volatile
-    var AUTHORITY = "com.edde746.plezy.systemshelf.artwork"
-      private set
+    /** Follows applicationId (as the manifest does), so a fork with its own app id gets its own authority. */
+    const val AUTHORITY = "${com.edde746.plezy.BuildConfig.APPLICATION_ID}.systemshelf.artwork"
   }
 
-  override fun onCreate(): Boolean {
-    val ctx = context ?: return false
-    AUTHORITY = "${ctx.packageName}.systemshelf.artwork"
-    return true
-  }
+  override fun onCreate(): Boolean = context != null
 
   /**
    * The provider is not exported, so the framework admits a cross-process caller only when it
